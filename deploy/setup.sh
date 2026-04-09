@@ -3,7 +3,7 @@
 # Run as: bash setup.sh
 set -e
 
-REPO_URL="https://github.com/YOUR_USERNAME/Analysis-GPT.git"
+REPO_URL="https://github.com/Ni455/Analysis-GPT.git"
 APP_DIR="/home/ubuntu/Analysis-GPT"
 SERVICE="analysis-gpt"
 
