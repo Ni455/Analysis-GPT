@@ -9,19 +9,19 @@ SERVICE="analysis-gpt"
 
 echo "==> Updating system packages"
 sudo apt-get update -y
-sudo apt-get install -y python3.11 python3.11-venv python3-pip git
+sudo apt-get install -y python3 python3-venv python3-pip git
 
 echo "==> Cloning repo"
 if [ -d "$APP_DIR" ]; then
   echo "   Directory exists — pulling latest"
-  cd "$APP_DIR" && git pull origin main
+  cd "$APP_DIR" && git pull origin master
 else
   git clone "$REPO_URL" "$APP_DIR"
   cd "$APP_DIR"
 fi
 
 echo "==> Creating virtual environment"
-python3.11 -m venv "$APP_DIR/venv"
+python3 -m venv "$APP_DIR/venv"
 "$APP_DIR/venv/bin/pip" install --upgrade pip
 "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
 
