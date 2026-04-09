@@ -1,0 +1,17 @@
+[Unit]
+Description=Analysis-GPT Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Analysis-GPT
+ExecStart=/home/ubuntu/Analysis-GPT/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/ubuntu/Analysis-GPT/.env
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
