@@ -23,6 +23,12 @@ LOW_IV_THRESH   = 22.0
 RATE_LIMIT_SLEEP = 0.35
 MIN_SCORE       = 8
 
+# Run mode windows: (hour, minute) tuples in IST 24h format
+MORNING_WINDOW_START = (9, 0)    # 9:00 AM IST
+MORNING_WINDOW_END   = (11, 0)   # 11:00 AM IST
+EOD_WINDOW_START     = (14, 30)  # 2:30 PM IST
+EOD_WINDOW_END       = (15, 30)  # 3:30 PM IST
+
 # ── Default watchlist (used by /reversal and /scalp with no symbols) ──────────
 DEFAULT_SYMBOLS = [
     "ITC", "ONGC", "KOTAKBANK", "NTPC", "ADANIPOWER",
