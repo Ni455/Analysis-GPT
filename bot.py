@@ -69,7 +69,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         results.append(f"Sensibull API: ❌ {e}")
     try:
-        h = yf.Ticker("ONGC.NS").history(period="1d")
+        h = yf.Ticker("ONGC.NS").history(period="5d")
         price = float(h["Close"].iloc[-1]) if not h.empty else None
         if price:
             results.append(f"yfinance:       ✅ OK (ONGC ₹{price:.2f})")
