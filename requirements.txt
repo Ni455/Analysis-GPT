@@ -1,7 +1,7 @@
 python-telegram-bot==20.7
 python-dotenv==1.0.1
 requests==2.31.0
-yfinance==0.2.40
+yfinance>=0.2.54
 scipy==1.13.0
 numpy==1.26.4
 openpyxl==3.1.2
