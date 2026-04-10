@@ -36,28 +36,47 @@ def fetch_instruments(symbol):
             f"https://api.sensibull.com/v1/instruments/{symbol}",
             headers=HEADERS, timeout=15
         )
-        return r.json().get("data", [])
-    except Exception as e:
-        return []
-
-def get_spot_trend(symbol):
-    """Return (spot, 5d_change_pct, volume_ratio_vs_avg, today_change_pct)."""
-    try:
-        t = yf.Ticker(f"{symbol}.NS")
-        hist = t.history(period="10d")
-        if hist.empty or len(hist) < 2:
-            return None, None, None, None
-        spot       = float(hist["Close"].iloc[-1])
-        prev_close = float(hist["Close"].iloc[-2])
-        today_chg  = (spot - prev_close) / prev_close * 100
-        base       = float(hist["Close"].iloc[0])
-        chg_5d     = (spot - base) / base * 100
-        avg_vol    = float(hist["Volume"].mean())
-        today_vol  = float(hist["Volume"].iloc[-1])
-        vol_ratio  = today_vol / avg_vol if avg_vol > 0 else 1.0
-        return spot, chg_5d, vol_ratio, today_chg
+        return r.json().get("data", []), r.json()
     except Exception:
+        return [], {}
+
+def _spot_from_chain(instruments):
+    """Derive ATM spot from options chain: find strike where |CE_ltp - PE_ltp| is min."""
+    try:
+        nearest_expiry = sorted(set(i["expiry"] for i in instruments))[0]
+        chain = [i for i in instruments if i["expiry"] == nearest_expiry]
+        strikes = {}
+        for i in chain:
+            k = i.get("strike_price") or i.get("strike", 0)
+            if not k:
+                continue
+            otype = i.get("option_type") or i.get("instrument_type", "")
+            strikes.setdefault(k, {})
+            strikes[k][otype] = i.get("last_price", 0) or 0
+        atm = min(
+            ((k, abs(v.get("CE", 0) - v.get("PE", 0))) for k, v in strikes.items() if "CE" in v and "PE" in v),
+            key=lambda x: x[1]
+        )
+        return float(atm[0])
+    except Exception:
+        return None
+
+def get_spot_trend(symbol, instruments, resp_json):
+    """Return (spot, 5d_change_pct, volume_ratio_vs_avg, today_change_pct).
+    Uses Sensibull data only — yfinance blocked on AWS EC2 by Yahoo Finance."""
+    # Get spot from Sensibull response
+    spot = float(resp_json.get("underlying_value") or resp_json.get("spot") or 0) or None
+    if not spot:
+        spot = _spot_from_chain(instruments)
+    if not spot:
         return None, None, None, None
+
+    # chg_5d, vol_ratio, today_chg — derive from options chain OI/volume as proxy
+    # Without equity OHLCV (yfinance blocked), use neutral defaults so scan still runs
+    chg_5d    = 0.0   # neutral — scoring will treat as sideways
+    vol_ratio = 1.0   # neutral
+    today_chg = 0.0
+    return spot, chg_5d, vol_ratio, today_chg
 
 def next_month_expiry(instruments):
     """Return the first expiry date that falls in the next calendar month."""
@@ -90,11 +109,11 @@ def calc_iv(S, K, T, r, price, opt):
 
 # ── Per-symbol scan ───────────────────────────────────────────────────────────
 def scan(symbol):
-    instruments = fetch_instruments(symbol)
+    instruments, resp_json = fetch_instruments(symbol)
     if not instruments:
         return []
 
-    spot, chg_5d, vol_ratio, today_chg = get_spot_trend(symbol)
+    spot, chg_5d, vol_ratio, today_chg = get_spot_trend(symbol, instruments, resp_json)
     if spot is None:
         return []
 

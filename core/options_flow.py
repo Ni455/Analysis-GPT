@@ -67,16 +67,40 @@ def fetch_symbol_data(symbol: str) -> dict:
         headers=HEADERS, timeout=10
     )
     r.raise_for_status()
-    data = r.json().get('data', [])
+    resp_json = r.json()
+    data = resp_json.get('data', [])
     if not data:
         raise ValueError(f"No data found for symbol: {symbol}")
 
-    ticker = TICKER_MAP.get(symbol.upper(), f'{symbol.upper()}.NS')
-    try:
-        h = yf.Ticker(ticker).history(period="1d")
-        spot = float(h["Close"].iloc[-1]) if not h.empty else 0.0
-    except Exception:
-        spot = 0.0
+    # Try Sensibull response root for spot price first (no Yahoo Finance needed)
+    spot = float(resp_json.get('underlying_value') or resp_json.get('spot') or 0)
+    if not spot:
+        # Derive ATM spot from options chain: find strike where |CE_ltp - PE_ltp| is min
+        try:
+            nearest_expiry = sorted(set(i['expiry'] for i in data))[0]
+            chain = [i for i in data if i['expiry'] == nearest_expiry]
+            strikes = {}
+            for i in chain:
+                k = i.get('strike_price', 0)
+                if not k:
+                    continue
+                strikes.setdefault(k, {})
+                strikes[k][i.get('option_type')] = i.get('last_price', 0) or 0
+            atm = min(
+                ((k, abs(v.get('CE', 0) - v.get('PE', 0))) for k, v in strikes.items() if 'CE' in v and 'PE' in v),
+                key=lambda x: x[1]
+            )
+            spot = float(atm[0])
+        except Exception:
+            spot = 0.0
+    if not spot:
+        # Last resort: yfinance (may fail on AWS due to Yahoo Finance IP blocks)
+        ticker = TICKER_MAP.get(symbol.upper(), f'{symbol.upper()}.NS')
+        try:
+            h = yf.Ticker(ticker).history(period="5d")
+            spot = float(h["Close"].iloc[-1]) if not h.empty else 0.0
+        except Exception:
+            spot = 0.0
 
     expiries_sorted = sorted(set(i['expiry'] for i in data))
     expiry_list = expiries_sorted[:2]  # nearest + next only

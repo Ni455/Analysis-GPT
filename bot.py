@@ -57,7 +57,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id, ALLOWED_ID):
         return
-    import requests, yfinance as yf
+    import requests
     results = []
     try:
         r = requests.get(
@@ -65,18 +65,13 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             headers={"User-Agent": "Mozilla/5.0", "Referer": "https://web.sensibull.com/"},
             timeout=8,
         )
-        results.append(f"Sensibull API: {'✅ OK' if r.status_code == 200 else f'❌ {r.status_code}'}")
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            results.append(f"Sensibull API: ✅ OK ({len(data)} instruments for ONGC)")
+        else:
+            results.append(f"Sensibull API: ❌ {r.status_code}")
     except Exception as e:
         results.append(f"Sensibull API: ❌ {e}")
-    try:
-        h = yf.Ticker("ONGC.NS").history(period="5d")
-        price = float(h["Close"].iloc[-1]) if not h.empty else None
-        if price:
-            results.append(f"yfinance:       ✅ OK (ONGC ₹{price:.2f})")
-        else:
-            results.append("yfinance:       ❌ empty history response")
-    except Exception as e:
-        results.append(f"yfinance:       ❌ {e}")
     await update.message.reply_text("\n".join(results))
 
 
