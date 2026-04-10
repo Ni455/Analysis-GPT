@@ -73,7 +73,8 @@ def fetch_symbol_data(symbol: str) -> dict:
 
     ticker = TICKER_MAP.get(symbol.upper(), f'{symbol.upper()}.NS')
     try:
-        spot = yf.Ticker(ticker).fast_info['lastPrice']
+        h = yf.Ticker(ticker).history(period="1d")
+        spot = float(h["Close"].iloc[-1]) if not h.empty else 0.0
     except Exception:
         spot = 0.0
 
