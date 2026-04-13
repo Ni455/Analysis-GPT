@@ -104,7 +104,7 @@ async def cmd_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("⏳ Pulling latest code from GitHub...")
     try:
         result = subprocess.run(
-            ["git", "pull", "origin", "main"],
+            ["git", "pull", "origin", "master"],
             capture_output=True, text=True, timeout=60,
         )
         output = result.stdout.strip() or result.stderr.strip() or "No output"
