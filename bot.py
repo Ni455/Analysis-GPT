@@ -12,6 +12,7 @@ from bot_utils import is_authorized, split_chunks
 from handlers.flow import flow_handler
 from handlers.reversal import reversal_handler
 from handlers.scalp import scalp_handler
+from handlers.sl import sl_handler
 
 load_dotenv()
 
@@ -39,6 +40,11 @@ Analysis-GPT Commands:
 
 /retry
   Re-run the last failed command
+
+/sl <entry_price> [lot_size]
+  Stop loss & profit target calculator (R:R 1:1, 1:1.5, 1:2)
+  Lot size defaults to 6750 if not provided
+  Example: /sl 2.00 6750  or  /sl 0.70
 
 /update
   Pull latest code from GitHub and restart bot
@@ -121,6 +127,10 @@ async def cmd_scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await scalp_handler(update, context, ALLOWED_ID)
 
 
+async def cmd_sl(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await sl_handler(update, context, ALLOWED_ID)
+
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("help",     cmd_help))
@@ -131,6 +141,7 @@ def main():
     app.add_handler(CommandHandler("flow",     cmd_flow))
     app.add_handler(CommandHandler("reversal", cmd_reversal))
     app.add_handler(CommandHandler("scalp",    cmd_scalp))
+    app.add_handler(CommandHandler("sl",       cmd_sl))
     print("Bot started. Polling...")
     app.run_polling(drop_pending_updates=True)
 
